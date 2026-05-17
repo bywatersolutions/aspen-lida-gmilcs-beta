@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Button, ButtonText, FlatList, Heading, HStack, Spinner, Text, VStack } from '@gluestack-ui/themed';
+import { Accordion, AccordionItem, AccordionHeader, AccordionTrigger, AccordionTitleText, AccordionIcon, AccordionContent, AccordionContentText, Box, Button, ButtonText, FlatList, Heading, HStack, Spinner, Text, VStack, ChevronUpIcon, ChevronDownIcon } from '@gluestack-ui/themed';
 import { clearApiErrorLogs, getApiErrorLogsPage } from '../../../../util/db';
+import { ThemeContext } from '../../../../context/initialContext';
 
 /* move this to the helpers.js */
 function formatDate(ms) {
@@ -13,6 +14,7 @@ function formatDate(ms) {
 
 export const APIErrorLog = () => {
      const [loading, setLoading] = React.useState(false);
+     const { theme, colorMode, textColor } = React.useContext(ThemeContext);
      const [page, setPage] = React.useState(1);
      const [rows, setRows] = React.useState([]);
      const [meta, setMeta] = React.useState({
@@ -59,20 +61,63 @@ export const APIErrorLog = () => {
      };
 
      const renderEntry = ({ item }) => (
-          <Box borderBottomWidth={1} borderColor="$borderLight200" px="$3" py="$3">
+          <Box borderBottomWidth="$1" borderColor={colorMode === 'light' ? theme['colors']['coolGray']['200'] : theme['colors']['gray']['600']} px="$3" py="$3">
                <VStack space="xs">
-                    <Text size="xs" color="$textLight500">
+                    <Text size="xs" color={textColor}>
                          {formatDate(item.created_at)}
                     </Text>
-                    <Text bold size="sm">
+                    <Text bold size="sm" color={textColor}>
                          {(item.method ?? 'UNKNOWN') + ' ' + (item.endpoint ?? '-')}
                     </Text>
-                    <Text size="xs">{'status=' + (item.status ?? 'n/a') + '  problem=' + (item.problem ?? 'n/a')}</Text>
-                    <Text size="xs">{item.message ?? ''}</Text>
+                    <Text size="xs" color={textColor}>
+                         {'status=' + (item.status ?? 'n/a') + '  problem=' + (item.problem ?? 'n/a')}
+                    </Text>
+                    <Text color={textColor}>{item.requestParams}</Text>
+                    {item.message ? (
+                         <>
+                              <Text size="xs" color={textColor}>
+                                   {item.message ?? ''}
+                              </Text>
+                         </>
+                    ) : null}
+
                     {item.response_body ? (
-                         <Text size="2xs" color="$textLight500">
-                              {preview(item.response_body)}
-                         </Text>
+                         <Accordion>
+                              <AccordionItem value="response_body" bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}>
+                                   <AccordionHeader bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}>
+                                        <AccordionTrigger>
+                                             {({ isExpanded }) => {
+                                                  return (
+                                                       <>
+                                                            <AccordionTitleText color={textColor}>Response</AccordionTitleText>
+                                                            {isExpanded ? <AccordionIcon as={ChevronUpIcon} ml="$3" color={textColor} /> : <AccordionIcon as={ChevronDownIcon} ml="$3" color={textColor} />}
+                                                       </>
+                                                  );
+                                             }}
+                                        </AccordionTrigger>
+                                   </AccordionHeader>
+                                   <AccordionContent bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}>
+                                        <AccordionContentText>
+                                             <Text
+                                                  style={{
+                                                       fontFamily: 'Courier New, monospace',
+                                                       fontSize: 12,
+                                                       whiteSpace: 'pre-wrap',
+                                                       color: textColor,
+                                                  }}>
+                                                  {(() => {
+                                                       try {
+                                                            const parsed = JSON.parse(item.response_body);
+                                                            return JSON.stringify(parsed, null, 2);
+                                                       } catch (error) {
+                                                            return JSON.stringify(item.response_body, null, 2);
+                                                       }
+                                                  })()}
+                                             </Text>
+                                        </AccordionContentText>
+                                   </AccordionContent>
+                              </AccordionItem>
+                         </Accordion>
                     ) : null}
                </VStack>
           </Box>
@@ -81,8 +126,10 @@ export const APIErrorLog = () => {
      return (
           <Box flex={1}>
                <Box px="$3" py="$3" borderBottomWidth={1} borderColor="$borderLight200">
-                    <Heading size="sm">API Error Logs (Last 24 Hours)</Heading>
-                    <Text size="xs" color="$textLight500">
+                    <Heading size="sm" color={textColor}>
+                         API Error Logs (Last 24 Hours)
+                    </Heading>
+                    <Text size="xs" color={textColor}>
                          {'Total: ' + meta.total}
                     </Text>
                </Box>
@@ -95,7 +142,7 @@ export const APIErrorLog = () => {
                     <FlatList
                          data={rows}
                          keyExtractor={(item) => String(item.id)}
-                         renderItem={renderItem}
+                         renderItem={renderEntry}
                          ListEmptyComponent={
                               <Box px="$3" py="$6" alignItems="center">
                                    <Text>No API errors in the past 24 hours.</Text>
@@ -105,20 +152,20 @@ export const APIErrorLog = () => {
                )}
 
                <HStack px="$3" py="$3" justifyContent="space-between" alignItems="center" borderTopWidth={1} borderColor="$borderLight200">
-                    <Button variant="outline" onPress={() => loadPage(page - 1)} isDisabled={loading || !meta.hasPrevious}>
-                         <ButtonText>Previous</ButtonText>
+                    <Button bgColor={theme['colors']['secondary']['500']} onPress={() => loadPage(page - 1)} isDisabled={loading || !meta.hasPrevious}>
+                         <ButtonText color={theme['colors']['secondary']['500-text']}>Previous</ButtonText>
                     </Button>
 
-                    <Text size="xs">{`Page ${page} / ${meta.totalPages}`}</Text>
+                    <Text size="xs" color={textColor}>{`Page ${page} / ${meta.totalPages}`}</Text>
 
-                    <Button onPress={() => loadPage(page + 1)} isDisabled={loading || !meta.hasMore}>
-                         <ButtonText>Next</ButtonText>
+                    <Button bgColor={theme['colors']['secondary']['500']} onPress={() => loadPage(page + 1)} isDisabled={loading || !meta.hasMore}>
+                         <ButtonText color={theme['colors']['secondary']['500-text']}>Next</ButtonText>
                     </Button>
                </HStack>
 
                <Box px="$3" pb="$3">
-                    <Button variant="outline" onPress={onClear} isDisabled={loading}>
-                         <ButtonText>Clear Logs</ButtonText>
+                    <Button variant="outline" borderColor={theme['colors']['tertiary']['500']} onPress={onClear} isDisabled={loading}>
+                         <ButtonText color={theme['colors']['tertiary']['500']}>Clear Logs</ButtonText>
                     </Button>
                </Box>
           </Box>
