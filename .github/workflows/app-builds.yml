@@ -26,6 +26,7 @@ env:
   SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
   CURL_HOME: /tmp/.curl
   EXTRA_HEADERS: ${{ secrets.EXTRA_HEADERS }}
+  EXPO_DEBUG: 1
 
 jobs:
   check-skip:
